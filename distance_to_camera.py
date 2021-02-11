@@ -40,6 +40,6 @@ def initialize():
 
 def find_distance(image, box, focalLength):
 	inches = distance_to_camera(KNOWN_WIDTH, focalLength, box[2])
-	cv2.putText(image, "%.2fft" % (inches / 12),
+	cv2.putText(image, "%.2fm" % (inches / 39.37),
 				(int(box[0] + box[2] + 5), int(box[1] + box[3])), cv2.FastFeatureDetector_TYPE_5_8,
 				1.0, (0, 255, 0), 2)
