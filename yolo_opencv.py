@@ -108,7 +108,6 @@ while videoStream.isOpened():
     height, width, layers = image.shape
     size = (width, height)
     img_array.append(image)
-    cv2.imshow("object detection", image)
     print("Processed: " + str(frameCount) + "/" + str(totalFrames) + " frames")
     frameCount += 1
     if cv2.waitKey(1) & 0xFF == ord('q'):
