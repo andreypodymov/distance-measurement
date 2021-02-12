@@ -56,8 +56,8 @@ while videoStream.isOpened():
     status, image = videoStream.read()
 
     if not status:
-        print("Could not read frame")
-        exit()
+        break
+
     Width = image.shape[1]
     Height = image.shape[0]
     scale = 0.00392
@@ -108,6 +108,7 @@ while videoStream.isOpened():
     height, width, layers = image.shape
     size = (width, height)
     img_array.append(image)
+    cv2.imshow("object detection", image)
     print("Processed: " + str(frameCount) + "/" + str(totalFrames) + " frames")
     frameCount += 1
     if cv2.waitKey(1) & 0xFF == ord('q'):
