@@ -40,6 +40,7 @@ with open(args.classes, 'r') as f:
 # open webcam
 videoStream = cv2.VideoCapture(args.video)
 totalFrames = int(videoStream.get(cv2.CAP_PROP_FRAME_COUNT))
+print(totalFrames)
 
 if not videoStream.isOpened():
     print("Could not open steam")
@@ -56,6 +57,7 @@ while videoStream.isOpened():
     status, image = videoStream.read()
 
     if not status:
+        print("Next frame status == false")
         break
 
     Width = image.shape[1]
