@@ -6,6 +6,8 @@ import distance_to_camera
 ap = argparse.ArgumentParser()
 ap.add_argument('-v', '--video', required=False,
                 help='path to input image')
+ap.add_argument('-i', '--image', required=False,
+                help='path to input image')
 ap.add_argument('-c', '--config', required=True,
                 help='path to yolo config file')
 ap.add_argument('-w', '--weights', required=True,
@@ -31,34 +33,7 @@ def draw_prediction(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
         cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
         cv2.putText(img, label, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-
-classes = None
-
-with open(args.classes, 'r') as f:
-    classes = [line.strip() for line in f.readlines()]
-
-# open webcam
-videoStream = cv2.VideoCapture(args.video)
-totalFrames = int(videoStream.get(cv2.CAP_PROP_FRAME_COUNT))
-
-if not videoStream.isOpened():
-    print("Could not open steam")
-    exit()
-
-focalLength = distance_to_camera.initialize()
-frameCount = 0
-img_array = []
-
-# loop through frames
-while videoStream.isOpened():
-
-    # read frame from webcam
-    status, image = videoStream.read()
-
-    if not status:
-        print("Next frame status == false")
-        break
-
+def analyzeFrame(image):
     Width = image.shape[1]
     Height = image.shape[0]
     scale = 0.00392
@@ -106,23 +81,58 @@ while videoStream.isOpened():
         draw_prediction(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
         distance_to_camera.find_distance(image, box, focalLength)
 
-    height, width, layers = image.shape
-    size = (width, height)
-    img_array.append(image)
-    print("Processed: " + str(frameCount) + "/" + str(totalFrames) + " frames")
-    frameCount += 1
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    return image
 
-out = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 15, size)
+classes = None
 
-for i in range(len(img_array)):
-    out.write(img_array[i])
+with open(args.classes, 'r') as f:
+    classes = [line.strip() for line in f.readlines()]
 
-out.release()
+if (args.video == None and args.image == None):
+    print("Error: --image or --video argument is not present")
+    exit(1)
 
-videoStream.release()
+focalLength = distance_to_camera.initialize()
+
+if (args.video != None):
+    videoStream = cv2.VideoCapture(args.video)
+    totalFrames = int(videoStream.get(cv2.CAP_PROP_FRAME_COUNT))
+    if not videoStream.isOpened():
+        print("Could not open steam")
+        exit()
+
+    frameCount = 0
+    img_array = []
+
+    # loop through frames
+    while videoStream.isOpened():
+        status, image = videoStream.read()
+        if not status:
+            print("Next frame status == false")
+            break
+        analyzed_image = analyzeFrame(image)
+        cv2.imshow("Frame", analyzed_image)
+        img_array.append(analyzed_image)
+        height, width, layers = analyzed_image.shape
+        size = (width, height)
+        print("Processed: " + str(frameCount) + "/" + str(totalFrames) + " frames")
+        frameCount += 1
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    out = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 15, size)
+
+    for i in range(len(img_array)):
+        out.write(img_array[i])
+
+    out.release()
+
+    videoStream.release()
+elif (args.image != None):
+    image = cv2.imread(args.image)
+    analyzed_image = analyzeFrame(image)
+    cv2.imshow("Frame", analyzed_image)
+    cv2.imwrite("output.jpg", analyzed_image)
+    cv2.waitKey(0)
+
 cv2.destroyAllWindows()
-# release resources
-
-
