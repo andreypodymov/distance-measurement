@@ -2,6 +2,7 @@ import cv2
 import argparse
 import numpy as np
 import distance_to_camera
+from centroidtracker import CentroidTracker
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-v', '--video', required=False,
@@ -16,6 +17,7 @@ ap.add_argument('-cl', '--classes', required=True,
                 help='path to text file containing class names')
 args = ap.parse_args()
 
+ct = CentroidTracker()
 
 def get_output_layers(net):
     layer_names = net.getLayerNames()
@@ -60,26 +62,59 @@ def analyzeFrame(image):
             if confidence > 0.5:
                 center_x = int(detection[0] * Width)
                 center_y = int(detection[1] * Height)
+
                 w = int(detection[2] * Width)
                 h = int(detection[3] * Height)
                 x = center_x - w / 2
                 y = center_y - h / 2
+
                 class_ids.append(class_id)
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
 
     indices = cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold)
 
+    old = ct.objects.copy()
+    ct.update(boxes)
+
     for i in indices:
         i = i[0]
+
         box = boxes[i]
         x = box[0]
         y = box[1]
         w = box[2]
         h = box[3]
-
         draw_prediction(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
+
+        # x_center = (x + w + x ) / 2
+        # y_center = (y + h + y) / 2
+        #
+        #
+        # cv2.putText(image, "CEN", (round(x_center), round(y_center)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
         distance_to_camera.find_distance(image, box, focalLength)
+        #cv2.putText(image, direction, (round(x) - 10,  round(y + h)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+    for key, value in ct.objects.items():
+        newBox = ct.objects.get(key)
+        oldBox = old.get(key)
+        direction = ""
+
+        if oldBox is not None and newBox is not None:
+
+            if newBox[0] >= oldBox[0]:
+                direction = "RIGHT"
+            if newBox[0] < oldBox[0]:
+                direction = "LEFT"
+
+            if newBox[1] >= oldBox[1]:
+                direction = direction + "-BOTTOM"
+            if newBox[1] < oldBox[1]:
+                direction = direction + "-TOP"
+
+        cv2.putText(image, direction, (round(newBox[0]), round(newBox[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(image, "ID " + str(key), (round(newBox[0]), round(newBox[1]) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return image
 
@@ -103,7 +138,6 @@ if (args.video != None):
 
     frameCount = 0
     img_array = []
-
     # loop through frames
     while videoStream.isOpened():
         status, image = videoStream.read()
