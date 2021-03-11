@@ -19,6 +19,24 @@ args = ap.parse_args()
 
 ct = CentroidTracker()
 
+def draw_arrow(image, start_point, end_point):
+    # Start coordinate, here (0, 0)
+    # represents the top left corner of image
+
+    # Green color in BGR
+    color = (0, 255, 0)
+
+    # Line thickness of 9 px
+    thickness = 6
+
+    # Using cv2.arrowedLine() method
+    # Draw a diagonal green arrow line
+    # with thickness of 9 px
+    image = cv2.arrowedLine(image, start_point, end_point,
+                            color, thickness)
+    return image
+
+
 def get_output_layers(net):
     layer_names = net.getLayerNames()
 
@@ -86,35 +104,35 @@ def analyzeFrame(image):
         w = box[2]
         h = box[3]
         draw_prediction(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
-
-        # x_center = (x + w + x ) / 2
-        # y_center = (y + h + y) / 2
-        #
-        #
-        # cv2.putText(image, "CEN", (round(x_center), round(y_center)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
         distance_to_camera.find_distance(image, box, focalLength)
-        #cv2.putText(image, direction, (round(x) - 10,  round(y + h)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     for key, value in ct.objects.items():
         newBox = ct.objects.get(key)
         oldBox = old.get(key)
-        direction = ""
-
+        directionX = "-"
+        directionY = "-"
+        speed = 0
+        cv2.circle(image, (newBox[0], newBox[1]), 3, (0,0,255), 6)
         if oldBox is not None and newBox is not None:
 
-            if newBox[0] >= oldBox[0]:
-                direction = "RIGHT"
+            if newBox[0] > oldBox[0]:
+                directionX = "RIGHT"
+                speed = 1
             if newBox[0] < oldBox[0]:
-                direction = "LEFT"
+                speed = 1
+                directionX = "LEFT"
 
-            if newBox[1] >= oldBox[1]:
-                direction = direction + "-BOTTOM"
+            if newBox[1] > oldBox[1]:
+                directionY = "DOWN"
+                speed = 1
             if newBox[1] < oldBox[1]:
-                direction = direction + "-TOP"
+                directionY = "UP"
+                speed = 1
 
-        cv2.putText(image, direction, (round(newBox[0]), round(newBox[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        cv2.putText(image, "ID " + str(key), (round(newBox[0]), round(newBox[1]) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.line(image, (oldBox[0], oldBox[1]), (newBox[0], newBox[1]), (0, 255, 0), 10)
+
+        cv2.putText(image, "Direction: " + directionX+"/"+directionY, (round(newBox[0]), 25 + round(newBox[1] + int(newBox[3] * 0.5))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(image, "Speed: " + str(speed), (round(newBox[0]), 40 + round(newBox[1] + int(newBox[3] * 0.5))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return image
 

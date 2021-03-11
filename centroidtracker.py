@@ -50,14 +50,14 @@ class CentroidTracker():
             # to update
             return self.objects
 
-        inputCentroids = np.zeros((len(rects), 2), dtype="int")
+        inputCentroids = np.zeros((len(rects), 4), dtype="int")
 
         # loop over the bounding box rectangles
-        for (i, (startX, startY, endX, endY)) in enumerate(rects):
+        for (i, (startX, startY, x_plus_width, y_plus_height)) in enumerate(rects):
             # use the bounding box coordinates to derive the centroid
-            cX = int((2*startX + endX) / 2.0)
-            cY = int((2*startY + endY) / 2.0)
-            inputCentroids[i] = (cX, cY)
+            cX = int((2*startX + x_plus_width) / 2.0)
+            cY = int((2*startY + y_plus_height) / 2.0)
+            inputCentroids[i] = (cX, cY, x_plus_width, y_plus_height)
 
         if len(self.objects) == 0:
             for i in range(0, len(inputCentroids)):
