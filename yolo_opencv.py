@@ -3,6 +3,8 @@ import argparse
 import numpy as np
 import distance_to_camera
 from centroidtracker import CentroidTracker
+from centroidtracker import RingBuffer
+from collections import OrderedDict
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-v', '--video', required=False,
@@ -18,6 +20,7 @@ ap.add_argument('-cl', '--classes', required=True,
 args = ap.parse_args()
 
 ct = CentroidTracker()
+centers = OrderedDict()
 
 def draw_arrow(image, start_point, end_point):
     # Start coordinate, here (0, 0)
@@ -107,6 +110,12 @@ def analyzeFrame(image):
         distance_to_camera.find_distance(image, box, focalLength)
 
     for key, value in ct.objects.items():
+
+        buffer = centers.get(key)
+        if buffer is None:
+            buffer = RingBuffer(8)
+            centers[key] = buffer
+
         newBox = ct.objects.get(key)
         oldBox = old.get(key)
         directionX = "-"
@@ -129,7 +138,12 @@ def analyzeFrame(image):
                 directionY = "UP"
                 speed = 1
 
-            cv2.line(image, (oldBox[0], oldBox[1]), (newBox[0], newBox[1]), (0, 255, 0), 10)
+        buffer.append(newBox)
+        buffer_values = buffer.get()
+        buffer_len = len(buffer_values)
+        if buffer_len > 1:
+            for i in range(buffer_len - 1):
+                cv2.line(image, (buffer_values[i][0], buffer_values[i][1]), (buffer_values[i+1][0], buffer_values[i+1][1]), (0, 255, 0), 10)
 
         cv2.putText(image, "Direction: " + directionX+"/"+directionY, (round(newBox[0]), 25 + round(newBox[1] + int(newBox[3] * 0.5))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         cv2.putText(image, "Speed: " + str(speed), (round(newBox[0]), 40 + round(newBox[1] + int(newBox[3] * 0.5))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
